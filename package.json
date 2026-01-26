@@ -1,6 +1,7 @@
 {
   "name": "zahmon-cafe",
   "private": true,
+  
   "version": "0.0.0",
   "type": "module",
   "scripts": {
@@ -33,4 +34,5 @@
     "tailwindcss": "^4.1.18",
     "vite": "^7.2.4"
   }
+  
 }

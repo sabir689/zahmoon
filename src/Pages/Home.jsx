@@ -131,19 +131,31 @@ const Home = () => {
           </div>
 
           {/* TAB FILTERS */}
-          <div className="flex flex-wrap justify-center gap-3 mb-16">
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveTab(cat)}
-                className={`px-6 py-2 rounded-full font-bold transition-all border-2 ${activeTab === cat
-                  ? "bg-orange-600 border-orange-600 text-white shadow-lg"
-                  : "bg-transparent border-gray-200 text-gray-400 hover:border-orange-300 hover:text-orange-600"
-                  }`}
-              >
-                {cat.replace('_', ' ')}
-              </button>
-            ))}
+          <div className="relative mb-16">
+            {/* Gradient Overlays to indicate more content */}
+            <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-white to-transparent z-10 pointer-events-none md:hidden" />
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-white to-transparent z-10 pointer-events-none md:hidden" />
+
+            <div className="flex overflow-x-auto no-scrollbar snap-x snap-mandatory gap-4 px-4 pb-2 -mx-4 md:justify-center md:flex-wrap">
+              {categories.map((cat) => {
+                const isActive = activeTab === cat;
+                return (
+                  <button
+                    key={cat}
+                    onClick={() => setActiveTab(cat)}
+                    className={`
+            flex-shrink-0 snap-center px-6 py-2 rounded-2xl font-bold transition-all border-2
+            ${isActive
+                        ? "bg-orange-600 border-orange-600 text-white shadow-lg"
+                        : "bg-gray-50 border-transparent text-gray-500 hover:border-orange-200"
+                      }
+          `}
+                  >
+                    {cat.replace('_', ' ')}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* LIST VIEW */}
@@ -250,12 +262,12 @@ const Home = () => {
               <span className="text-orange-600 font-bold uppercase tracking-[0.3em] text-xs">Visual Journey</span>
               <h2 className="text-5xl font-black mt-2">Captured <span className="text-gray-400 italic">Moments</span></h2>
             </div>
-            
+
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-[600px]">
             <motion.div whileHover={{ scale: 0.98 }} className="md:col-span-2 md:row-span-2 relative overflow-hidden rounded-3xl bg-gray-100">
-              <img src= 'interior25'  className="absolute inset-0 w-full h-full object-cover" alt="Interior" />
+              <img src="https://i.ibb.co.com/8gcsYgH4/Whats-App-Image-2026-01-26-at-8-56-04-PM.jpg" alt="Whats App Image 2026 01 26 at 8 56 04 PM" border="0" className="absolute inset-0 w-full h-full object-cover" alt="Interior" />
             </motion.div>
             <motion.div whileHover={{ scale: 0.98 }} className="relative overflow-hidden rounded-3xl bg-gray-100">
               <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070" className="absolute inset-0 w-full h-full object-cover" alt="Coffee" />
