@@ -11,6 +11,9 @@ import soup2 from '../assets/soup-2.jpg'
 import soup3 from '../assets/soup-3.jpg'
 import soup4 from '../assets/soup-4.jpg'
 import soup5 from '../assets/soup-5.jpg'
+import pasta1 from '../assets/WhatsApp Image 2026-01-26 at 8.48.01 PM.jpeg'
+import sub1 from '../assets/WhatsApp Image 2026-01-26 at 8.51.48 PM.jpeg'
+import burg1 from '../assets/WhatsApp Image 2026-01-26 at 8.53.29 PM.jpeg'
 
 
 
@@ -108,7 +111,7 @@ const menuData = {
     ],
 
     pasta: [
-      { name: "Mini Pasta Basta", price: 130, image: "/images/pasta/mini-pasta.jpg" },
+      { name: "Mini Pasta Basta", price: 130, image: pasta1 },
       { name: "Red Sauce Pasta", price: 200, image: "/images/pasta/red-sauce.jpg" },
       { name: "Pasta Basta", price: 240, image: "/images/pasta/pasta-basta.jpg" },
       { name: "BBQ Pasta", price: 250, image: "/images/pasta/bbq-pasta.jpg" },
@@ -117,7 +120,7 @@ const menuData = {
     ],
 
     sandwich_shawarma: [
-      { name: "Classic Chicken Sub Sandwich", price: 150, image: "/images/sandwich/sub.jpg" },
+      { name: "Classic Chicken Sub Sandwich", price: 150, image: sub1 },
       { name: "Classic Chicken Cheese Sub Sandwich", price: 170, image: "/images/sandwich/cheese-sub.jpg" },
       { name: "Naga Classic Chicken Cheese Sub Sandwich", price: 180, image: "/images/sandwich/naga-sub.jpg" },
       { name: "Chicken Roll Shawarma", price: 140, image: "/images/shawarma/roll.jpg" },
@@ -125,7 +128,7 @@ const menuData = {
     ],
 
     burger: [
-      { name: "Classic Chicken Burger", price: 140, image: "/images/burger/classic.jpg" },
+      { name: "Classic Chicken Burger", price: 140, image: burg1 },
       { name: "Classic Chicken Cheese Burger", price: 155, image: "/images/burger/cheese.jpg" },
       { name: "Mexican Hot Cheese Burger", price: 160, image: "/images/burger/mexican.jpg" },
       { name: "Naga Classic Chicken Cheese Burger", price: 170, image: "/images/burger/naga.jpg" },

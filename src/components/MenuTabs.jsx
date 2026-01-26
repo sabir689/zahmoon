@@ -1,30 +1,41 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaSearch, FaUtensils } from "react-icons/fa";
 import menuData from "../data/menuData";
 import MenuCard from "./MenuCard";
 
 const MenuTabs = () => {
-  const categories = Object.keys(menuData.menu);
-  const [activeTab, setActiveTab] = useState(categories[0]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
+  const categories = ["all", ...Object.keys(menuData.menu)];
+
+
+  const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Search Logic: Filters through ALL categories if there's a search query
+  // 3. FILTER LOGIC: Optimized for "All", Category, and Search
   const filteredItems = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return menuData.menu[activeTab];
-    }
-    
-    // Search across every single item in the menuData
+
     const allItems = Object.values(menuData.menu).flat();
-    return allItems.filter((item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+
+    if (searchQuery.trim()) {
+      return allItems.filter((item) =>
+        item.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    if (activeTab === "all") {
+      return allItems;
+    }
+
+    return menuData.menu[activeTab] || [];
   }, [activeTab, searchQuery]);
 
   return (
-    <div className="bg-white min-h-screen">
-      
+    <div className="bg-white min-h-screen selection:bg-orange-500 selection:text-white">
+
       {/* SECTION 1: HERO HEADER */}
       <section className="bg-gray-950 py-24 text-center text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070')] bg-cover bg-center" />
@@ -49,10 +60,10 @@ const MenuTabs = () => {
         </div>
       </section>
 
-      {/* SEARCH & TABS CONTAINER */}
-      <div className=" top-16 bg-white/90 backdrop-blur-xl z-40 border-b border-gray-100 py-6 px-4">
-        <div className="max-w-5xl mx-auto space-y-8">
-          
+      {/* SEARCH & TABS CONTAINER (Non-Sticky Layout) */}
+      <div className="bg-white border-b border-gray-100 py-12 px-4">
+        <div className="max-w-5xl mx-auto space-y-10">
+
           {/* 1. THE SEARCH BAR */}
           <div className="relative max-w-lg mx-auto">
             <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -65,14 +76,14 @@ const MenuTabs = () => {
             />
           </div>
 
-          {/* 2. TWO-LINE TABS (Hidden during search) */}
+          {/* 2. TWO-LINE TABS (Scrolls away with page) */}
           <AnimatePresence>
             {!searchQuery && (
-              <motion.div 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="flex flex-wrap justify-center gap-x-2 gap-y-3 md:gap-x-4 md:gap-y-4"
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="grid grid-cols-3 sm:grid-cols-3 md:flex md:flex-wrap justify-center gap-2 md:gap-4 px-1"
               >
                 {categories.map((cat) => {
                   const isActive = activeTab === cat;
@@ -82,9 +93,8 @@ const MenuTabs = () => {
                       onClick={() => setActiveTab(cat)}
                       className="relative px-5 py-2.5 transition-all duration-300 group flex-shrink-0"
                     >
-                      <span className={`relative z-10 text-[10px] md:text-xs tracking-widest font-black transition-colors duration-300 ${
-                        isActive ? "text-white" : "text-gray-500 group-hover:text-gray-900"
-                      }`}>
+                      <span className={`relative z-10 text-[10px] md:text-xs tracking-widest font-black transition-colors duration-300 ${isActive ? "text-white" : "text-gray-400 group-hover:text-gray-900"
+                        }`}>
                         {cat.replaceAll("_", " ").toUpperCase()}
                       </span>
 
@@ -96,7 +106,7 @@ const MenuTabs = () => {
                         />
                       )}
                       {!isActive && (
-                        <div className="absolute inset-0 bg-gray-100 rounded-xl scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100 transition-all duration-200 -z-0" />
+                        <div className="absolute inset-0 bg-gray-100 rounded-xl scale-95 opacity-0 group-hover:opacity-100 transition-all duration-200 -z-0" />
                       )}
                     </button>
                   );
@@ -107,8 +117,8 @@ const MenuTabs = () => {
 
           {/* Search Result Label */}
           {searchQuery && (
-            <p className="text-center text-sm font-bold text-gray-500 uppercase">
-              Found {filteredItems.length} matches for "{searchQuery}"
+            <p className="text-center text-sm font-bold text-gray-500 uppercase tracking-widest">
+              Found {filteredItems.length} items matching your search
             </p>
           )}
         </div>
@@ -117,37 +127,42 @@ const MenuTabs = () => {
       {/* ITEMS GRID */}
       <section className="max-w-7xl mx-auto px-6 py-12">
         {filteredItems.length > 0 ? (
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeTab + searchQuery} // Refresh animation on tab or search change
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.4 }}
-              className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
-            >
-              {filteredItems.map((item, index) => (
-                <MenuCard key={index} item={item} />
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-8"
+          >
+            <AnimatePresence mode="popLayout">
+              {filteredItems.map((item) => (
+                <motion.div
+                  key={item.name}
+                  layout
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <MenuCard item={item} />
+                </motion.div>
               ))}
-            </motion.div>
-          </AnimatePresence>
+            </AnimatePresence>
+          </motion.div>
         ) : (
           <div className="text-center py-20">
             <div className="text-6xl mb-4">🔍</div>
-            <h3 className="text-xl font-bold text-gray-800">No dishes found</h3>
-            <p className="text-gray-500">Try searching for something else like "Chicken" or "Pasta"</p>
+            <h3 className="text-xl font-bold text-gray-800 uppercase tracking-tighter">No dishes found</h3>
+            <p className="text-gray-500">Try searching for something else like "Pasta" or "Chicken"</p>
           </div>
         )}
       </section>
 
       {/* SECTION: MEET THE CHEF */}
-      <section className="bg-[#fffaf5] py-24 px-6">
+      <section className="bg-[#fffaf5] py-24 px-6 border-y border-gray-100">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-16">
           <div className="md:w-1/2 relative">
             <div className="absolute -inset-4 bg-orange-500/10 rounded-[3rem] -rotate-3" />
             <img
               src="https://images.unsplash.com/photo-1583394293214-28dea15ee548?q=80&w=1000"
-              className="relative z-10 rounded-[2.5rem] shadow-2xl grayscale hover:grayscale-0 transition-all duration-700"
+              className="relative z-10 rounded-[2.5rem] shadow-2xl grayscale hover:grayscale-0 transition-all duration-700 h-[500px] w-full object-cover"
               alt="Executive Chef"
             />
           </div>
@@ -164,23 +179,19 @@ const MenuTabs = () => {
       </section>
 
       {/* SECTION: DIETARY GUIDE */}
-      <section className="py-20 border-t border-gray-100 bg-gray-50">
+      <section className="py-20 bg-gray-50">
         <div className="max-w-6xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-12">
-          <div className="text-center p-8 bg-white rounded-3xl shadow-sm">
-            <div className="text-3xl mb-4">🌶️</div>
-            <h4 className="font-bold mb-2">Spicy Options</h4>
-            <p className="text-sm text-gray-500">Check for the chili badge for our signature heat level.</p>
-          </div>
-          <div className="text-center p-8 bg-white rounded-3xl shadow-sm">
-            <div className="text-3xl mb-4">🌿</div>
-            <h4 className="font-bold mb-2">Fresh Ingredients</h4>
-            <p className="text-sm text-gray-500">All vegetables are sourced daily from local farmers.</p>
-          </div>
-          <div className="text-center p-8 bg-white rounded-3xl shadow-sm">
-            <div className="text-3xl mb-4">📦</div>
-            <h4 className="font-bold mb-2">Group Catering</h4>
-            <p className="text-sm text-gray-500">Perfect portions for meetings and family gatherings.</p>
-          </div>
+          {[
+            { icon: "🌶️", title: "Spicy Options", desc: "Look for the chili badge for our signature heat levels." },
+            { icon: "🌿", title: "Fresh Ingredients", desc: "All vegetables are sourced daily from local farmers." },
+            { icon: "📦", title: "Group Catering", desc: "Perfect portions for meetings and family gatherings." }
+          ].map((item, i) => (
+            <div key={i} className="text-center p-8 bg-white rounded-3xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+              <div className="text-4xl mb-4">{item.icon}</div>
+              <h4 className="font-bold mb-2 text-gray-900 uppercase tracking-tight">{item.title}</h4>
+              <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 

@@ -10,6 +10,7 @@ import "swiper/css/effect-fade";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
 
+
 // Data and Components
 import MenuCard from "../components/MenuCard";
 import menuData from "../data/menuData";
@@ -254,7 +255,7 @@ const Home = () => {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 h-[600px]">
             <motion.div whileHover={{ scale: 0.98 }} className="md:col-span-2 md:row-span-2 relative overflow-hidden rounded-3xl bg-gray-100">
-              <img src="https://images.unsplash.com/photo-1550966841-3ee32281574e?q=80&w=2070" className="absolute inset-0 w-full h-full object-cover" alt="Interior" />
+              <img src= 'interior25'  className="absolute inset-0 w-full h-full object-cover" alt="Interior" />
             </motion.div>
             <motion.div whileHover={{ scale: 0.98 }} className="relative overflow-hidden rounded-3xl bg-gray-100">
               <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?q=80&w=2070" className="absolute inset-0 w-full h-full object-cover" alt="Coffee" />
