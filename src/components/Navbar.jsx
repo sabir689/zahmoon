@@ -12,7 +12,10 @@ const Navbar = () => {
     { name: "Home", path: "/" },
     { name: "Menu", path: "/menu" },
     { name: "Contact", path: "/contact" },
-    
+    { name: "Admin", path: "/admin" },
+
+
+
   ];
 
   // Prevent background scroll when mobile menu is open
@@ -23,9 +26,9 @@ const Navbar = () => {
   return (
     <nav className="bg-white/80 backdrop-blur-md shadow-sm px-6 py-4 sticky top-0 z-50 border-b border-gray-100">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
-        
+
         {/* Mobile Menu Trigger */}
-        <button 
+        <button
           onClick={() => setIsOpen(true)}
           className="md:hidden text-orange-600 text-2xl p-2 active:scale-90 transition-transform"
         >
@@ -41,9 +44,9 @@ const Navbar = () => {
         <div className="flex items-center space-x-8">
           <div className="hidden md:flex space-x-8">
             {navLinks.map((link) => (
-              <Link 
-                key={link.name} 
-                to={link.path} 
+              <Link
+                key={link.name}
+                to={link.path}
                 className="text-gray-600 hover:text-orange-600 font-bold text-sm transition-all hover:-translate-y-0.5"
               >
                 {link.name}
@@ -56,7 +59,7 @@ const Navbar = () => {
             <FaShoppingBag className="text-2xl text-gray-800 group-hover:text-orange-600 transition-colors" />
             <AnimatePresence>
               {cartCount > 0 && (
-                <motion.span 
+                <motion.span
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
                   exit={{ scale: 0 }}
@@ -75,7 +78,7 @@ const Navbar = () => {
         {isOpen && (
           <>
             {/* Background Overlay */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -84,7 +87,7 @@ const Navbar = () => {
             />
 
             {/* The Animated Drawer */}
-            <motion.div 
+            <motion.div
               initial={{ x: "-100%", borderTopRightRadius: "100px", borderBottomRightRadius: "100px" }}
               animate={{ x: 0, borderTopRightRadius: "0px", borderBottomRightRadius: "0px" }}
               exit={{ x: "-100%" }}
@@ -94,8 +97,8 @@ const Navbar = () => {
               {/* Drawer Header */}
               <div className="flex justify-between items-center mb-12">
                 <span className="text-2xl font-black text-orange-600 italic">ZahMon</span>
-                <button 
-                  onClick={() => setIsOpen(false)} 
+                <button
+                  onClick={() => setIsOpen(false)}
                   className="text-3xl text-orange-600 p-2 active:rotate-90 transition-transform"
                 >
                   <FaTimes />
@@ -111,8 +114,8 @@ const Navbar = () => {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 + i * 0.1 }}
                   >
-                    <Link 
-                      to={link.path} 
+                    <Link
+                      to={link.path}
                       onClick={() => setIsOpen(false)}
                       className="relative flex items-center justify-between w-full group py-4 px-2 overflow-hidden"
                     >
@@ -138,10 +141,10 @@ const Navbar = () => {
                   <FaFacebook className="hover:text-gray-900 cursor-pointer transition-colors" />
                   <FaWhatsapp className="hover:text-gray-900 cursor-pointer transition-colors" />
                 </div>
-                
+
                 <div className="p-1 bg-gradient-to-r from-orange-400 to-orange-600 rounded-2xl shadow-lg shadow-orange-200">
-                  <Link 
-                    to="/menu" 
+                  <Link
+                    to="/menu"
                     onClick={() => setIsOpen(false)}
                     className="block w-full bg-white text-orange-600 text-center py-4 rounded-[calc(1rem-1px)] font-black uppercase tracking-tighter active:bg-orange-600 active:text-white transition-all"
                   >

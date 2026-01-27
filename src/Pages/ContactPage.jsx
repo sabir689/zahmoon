@@ -100,7 +100,7 @@ const ContactPage = () => {
             whileInView={{ scale: [0.9, 1] }}
             className="inline-block px-10 py-6 border-2 border-orange-600 rounded-full italic text-2xl font-black text-orange-600"
         >
-            "Life begins after coffee."
+            "Life begins after coffee So lets begun with a coffee."
         </motion.div>
       </section>
     </div>

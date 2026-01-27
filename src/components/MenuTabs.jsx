@@ -1,29 +1,37 @@
 import { useState, useMemo, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaSearch, FaUtensils } from "react-icons/fa";
-import menuData from "../data/menuData";
+import { useMenu } from "../context/MenuContext"; // Updated to use Context
 import MenuCard from "./MenuCard";
 
 const MenuTabs = () => {
+  const { menu } = useMenu(); // Get live data from Global State
+
   // Ensure we start at the top when navigating to this page
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
-  const categories = ["all", ...Object.keys(menuData.menu)];
+  // Categories are derived dynamically from the keys in your menu object
+  const categories = ["all", ...Object.keys(menu)];
   const [activeTab, setActiveTab] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredItems = useMemo(() => {
-    const allItems = Object.values(menuData.menu).flat();
+    // Flatten all categories into one array for "all" or search results
+    const allItems = Object.values(menu).flat();
+    
     if (searchQuery.trim()) {
       return allItems.filter((item) =>
         item.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
+    
     if (activeTab === "all") return allItems;
-    return menuData.menu[activeTab] || [];
-  }, [activeTab, searchQuery]);
+    
+    // Return items for specific category
+    return menu[activeTab] || [];
+  }, [activeTab, searchQuery, menu]); // Recalculate if menu changes in Admin
 
   return (
     <div className="bg-white min-h-screen selection:bg-orange-500 selection:text-white">
