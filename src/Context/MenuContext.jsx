@@ -1,68 +1,116 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { db } from "../firebase";
+import { 
+  doc, 
+  setDoc, 
+  onSnapshot, 
+  collection, 
+  addDoc, 
+  deleteDoc, 
+  query, 
+  orderBy 
+} from "firebase/firestore";
 import initialMenuData from "../data/menuData";
 
 const MenuContext = createContext();
 
 export const MenuProvider = ({ children }) => {
-  // --- MENU STATE ---
-  const [menu, setMenu] = useState(() => {
-    const savedMenu = localStorage.getItem("zahmon_menu");
-    return savedMenu ? JSON.parse(savedMenu) : initialMenuData.menu;
-  });
+  // --- STATES ---
+  const [menu, setMenu] = useState(initialMenuData.menu);
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // --- ORDERS STATE ---
-  const [orders, setOrders] = useState(() => {
-    const savedOrders = localStorage.getItem("zahmon_orders");
-    return savedOrders ? JSON.parse(savedOrders) : [];
-  });
-
-  // Sync Menu to LocalStorage
+  // --- 1. SYNC MENU FROM FIREBASE ---
   useEffect(() => {
-    localStorage.setItem("zahmon_menu", JSON.stringify(menu));
-  }, [menu]);
+    // Reference to the single document where our menu is stored
+    const menuDocRef = doc(db, "config", "menu");
+    
+    const unsubscribe = onSnapshot(menuDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        setMenu(docSnap.data());
+      } else {
+        // If the database is empty (first time setup), 
+        // upload the local menuData.js to Firebase
+        setDoc(menuDocRef, initialMenuData.menu);
+      }
+      setLoading(false);
+    });
 
-  // Sync Orders to LocalStorage
+    return () => unsubscribe();
+  }, []);
+
+  // --- 2. SYNC ORDERS FROM FIREBASE ---
   useEffect(() => {
-    localStorage.setItem("zahmon_orders", JSON.stringify(orders));
-  }, [orders]);
+    // Reference to the 'orders' collection, sorted by newest first
+    const ordersQuery = query(collection(db, "orders"), orderBy("timestamp", "desc"));
+    
+    const unsubscribe = onSnapshot(ordersQuery, (querySnapshot) => {
+      const ordersArray = [];
+      querySnapshot.forEach((doc) => {
+        ordersArray.push({ ...doc.data(), id: doc.id });
+      });
+      setOrders(ordersArray);
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   // --- MENU ACTIONS ---
-  const addItem = (category, newItem) => {
-    setMenu(prev => ({
-      ...prev,
-      [category]: [...(prev[category] || []), { ...newItem, id: Date.now() }]
-    }));
+  const addItem = async (category, newItem) => {
+    const updatedMenu = {
+      ...menu,
+      [category]: [...(menu[category] || []), { ...newItem, id: Date.now() }]
+    };
+    
+    try {
+      // Overwrite the menu document in Firebase with the new list
+      await setDoc(doc(db, "config", "menu"), updatedMenu);
+    } catch (error) {
+      console.error("Error adding item:", error);
+    }
   };
 
-  const deleteItem = (category, itemName) => {
-    setMenu(prev => ({
-      ...prev,
-      [category]: prev[category].filter(item => item.name !== itemName)
-    }));
+  const deleteItem = async (category, itemName) => {
+    const updatedMenu = {
+      ...menu,
+      [category]: menu[category].filter(item => item.name !== itemName)
+    };
+    
+    try {
+      await setDoc(doc(db, "config", "menu"), updatedMenu);
+    } catch (error) {
+      console.error("Error deleting item:", error);
+    }
   };
 
   // --- ORDER ACTIONS ---
-  const placeOrder = (orderData) => {
-    const newOrder = {
-      ...orderData,
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      status: "pending"
-    };
-    setOrders(prev => [newOrder, ...prev]); // New orders appear at the top
+  const placeOrder = async (orderData) => {
+    try {
+      // Create a new document in the 'orders' collection
+      await addDoc(collection(db, "orders"), {
+        ...orderData,
+        timestamp: Date.now(), // Uses numeric timestamp for sorting
+        status: "pending"
+      });
+    } catch (error) {
+      console.error("Error placing order:", error);
+      throw error; // Pass error back to CartPage
+    }
   };
 
-  const completeOrder = (orderId) => {
-    // Option 1: Delete the order (Mark as Done)
-    setOrders(prev => prev.filter(order => order.id !== orderId));
-    
-    // Option 2 (Advanced): You could update status to 'completed' instead
-    // setOrders(prev => prev.map(o => o.id === orderId ? {...o, status: 'completed'} : o));
+  const completeOrder = async (orderId) => {
+    try {
+      // Delete the specific order document from Firebase
+      await deleteDoc(doc(db, "orders", orderId));
+    } catch (error) {
+      console.error("Error completing order:", error);
+    }
   };
 
-  const clearAllOrders = () => {
-    if(window.confirm("Clear all order history?")) {
-      setOrders([]);
+  const clearAllOrders = async () => {
+    if (window.confirm("This will permanently delete ALL orders. Proceed?")) {
+      // To keep it simple, we loop and delete or suggest deleting one by one
+      alert("Please delete orders individually for safety in this version.");
     }
   };
 
@@ -75,7 +123,8 @@ export const MenuProvider = ({ children }) => {
         orders, 
         placeOrder, 
         completeOrder,
-        clearAllOrders 
+        clearAllOrders,
+        loading 
       }}
     >
       {children}
