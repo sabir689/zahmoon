@@ -113,10 +113,10 @@ const Navbar = () => {
               animate={{ x: 0, borderTopRightRadius: "0px", borderBottomRightRadius: "0px" }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 h-screen w-[70%] md:w-[50%] bg-white z-[70] shadow-2xl p-8 md:hidden flex flex-col"
+              className="fixed top-0 left-0 h-screen w-[65%] md:w-[50%] bg-white z-[70] shadow-xl p-8 md:hidden flex flex-col"
             >
               <div className="flex justify-between items-center mb-12">
-                <span className="text-2xl font-black text-orange-600 italic">ZahMon</span>
+                <span className="text-2xl font-black text-orange-600 italic underline">ZahMon</span>
                 <button
                   onClick={() => setIsOpen(false)}
                   className="text-3xl text-orange-600 p-2 active:rotate-90 transition-transform"
@@ -163,7 +163,7 @@ const Navbar = () => {
                     onClick={() => setIsOpen(false)}
                     className="block w-full bg-white text-orange-600 text-center py-4 rounded-[calc(1rem-1px)] font-black uppercase tracking-tighter active:bg-orange-600 active:text-white transition-all"
                   >
-                    Order Online Now
+                    Order Now
                   </Link>
                 </div>
               </div>

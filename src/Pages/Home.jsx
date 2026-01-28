@@ -147,7 +147,7 @@ const Home = () => {
             flex-shrink-0 snap-center px-6 py-2 rounded-2xl font-bold transition-all border-2
             ${isActive
                         ? "bg-orange-600 border-orange-600 text-white shadow-lg"
-                        : "bg-gray-50 border-transparent text-gray-500 hover:border-orange-200"
+                        : "bg-gray-50 border-transparent text-black hover:border-orange-200"
                       }
           `}
                   >

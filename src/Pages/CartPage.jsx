@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useMenu } from "../context/MenuContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaPlus, FaMinus, FaShoppingBag, FaCheckCircle, FaArrowLeft, FaUtensils, FaPhoneAlt, FaClock } from "react-icons/fa";
+import { FaPlus, FaMinus, FaShoppingBag, FaCheckCircle, FaArrowLeft, FaUtensils, FaPhoneAlt, FaClock, FaMoneyBillWave, FaMobileAlt } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
 const CartPage = () => {
@@ -14,6 +14,10 @@ const CartPage = () => {
   const [location, setLocation] = useState(""); 
   const [phone, setPhone] = useState(""); 
   const [isProcessing, setIsProcessing] = useState(false);
+  
+  // New Payment States
+  const [paymentMethod, setPaymentMethod] = useState("cash"); // 'cash' or 'bkash'
+  const [trxID, setTrxID] = useState("");
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
   const deliveryFee = 60; 
@@ -31,9 +35,13 @@ const CartPage = () => {
       return;
     }
 
+    if (paymentMethod === "bkash" && !trxID) {
+      alert("Please enter the bKash Transaction ID!");
+      return;
+    }
+
     setIsProcessing(true);
 
-    // 1. AUTOMATIC TIME CAPTURE
     const now = new Date();
     const formattedTime = now.toLocaleTimeString([], { 
       hour: '2-digit', 
@@ -41,7 +49,6 @@ const CartPage = () => {
       hour12: true 
     });
 
-    // 2. PREPARE DATA
     const orderData = {
       items: cart.map(item => ({
         name: item.name,
@@ -51,9 +58,11 @@ const CartPage = () => {
       total: total,
       table: location, 
       phone: phone,    
+      paymentMethod: paymentMethod,
+      trxID: paymentMethod === "bkash" ? trxID : "N/A",
       status: "pending",
-      placedAt: formattedTime, // Human-readable for Admin display
-      timestamp: Date.now()    // For sorting logic
+      placedAt: formattedTime,
+      timestamp: Date.now()
     };
 
     try {
@@ -84,11 +93,11 @@ const CartPage = () => {
           <div className="w-28 h-28 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8 text-6xl shadow-inner">
             <FaCheckCircle />
           </div>
-          <h2 className="text-4xl font-black text-gray-900 mb-4 italic tracking-tighter">Order Sent!</h2>
+          <h2 className="text-4xl font-black text-gray-900 mb-4 italic tracking-tighter text-wrap">Order Sent!</h2>
           
           <div className="space-y-2 mb-10">
             <p className="text-gray-500 font-bold uppercase text-[10px] tracking-widest leading-relaxed">
-              Placed at <span className="text-orange-600">{new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+              Placing via <span className={paymentMethod === 'bkash' ? 'text-pink-600' : 'text-green-600'}>{paymentMethod.toUpperCase()}</span>
             </p>
             <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-relaxed px-4">
               We'll call <span className="text-gray-900 font-black">{phone}</span> once we arrive at <span className="text-gray-900 font-black">{location}</span>.
@@ -135,7 +144,7 @@ const CartPage = () => {
         </Link>
         <div>
           <h1 className="text-4xl font-black text-gray-900 italic tracking-tighter">Review <span className="text-orange-500">Order</span></h1>
-          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Cash on Delivery</p>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Ready for checkout</p>
         </div>
       </div>
       
@@ -183,7 +192,7 @@ const CartPage = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: Delivery & Bill Summary */}
+        {/* RIGHT: Delivery & Payment Summary */}
         <div className="lg:col-span-1">
           <div className="space-y-6 sticky top-32">
             
@@ -196,7 +205,7 @@ const CartPage = () => {
                 </div>
                 <input 
                   type="text"
-                  placeholder="e.g. Jaleshwaritola, House 12"
+                  placeholder="e.g. Table 05 or Jaleshwaritola"
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
                   className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500 focus:bg-white outline-none rounded-2xl px-6 py-4 font-bold text-gray-800 transition-all placeholder:text-gray-300 text-sm shadow-inner"
@@ -216,6 +225,44 @@ const CartPage = () => {
                   className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500 focus:bg-white outline-none rounded-2xl px-6 py-4 font-bold text-gray-800 transition-all placeholder:text-gray-300 text-sm shadow-inner"
                 />
               </div>
+
+              {/* PAYMENT SELECTOR */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400 mb-3 ml-1">Payment Method</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <button 
+                    onClick={() => setPaymentMethod("cash")}
+                    className={`py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex flex-col items-center gap-2 ${paymentMethod === 'cash' ? 'bg-orange-500 text-white border-orange-500 shadow-lg shadow-orange-100' : 'bg-white text-gray-400 border-gray-100'}`}
+                  >
+                    <FaMoneyBillWave size={16}/> Cash
+                  </button>
+                  <button 
+                    onClick={() => setPaymentMethod("bkash")}
+                    className={`py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border flex flex-col items-center gap-2 ${paymentMethod === 'bkash' ? 'bg-[#E2136E] text-white border-[#E2136E] shadow-lg shadow-pink-100' : 'bg-white text-gray-400 border-gray-100'}`}
+                  >
+                    <FaMobileAlt size={16}/> bKash
+                  </button>
+                </div>
+              </div>
+
+              {/* bKASH DETAILS PANEL */}
+              {paymentMethod === "bkash" && (
+                <motion.div 
+                  initial={{ opacity: 0, height: 0 }} 
+                  animate={{ opacity: 1, height: "auto" }}
+                  className="bg-pink-50 rounded-[2rem] p-5 border border-pink-100"
+                >
+                  <p className="text-[9px] font-black text-pink-600 uppercase tracking-widest mb-1 text-center">Send Money To (Personal)</p>
+                  <p className="text-xl font-black text-gray-900 text-center mb-4 tabular-nums">017XXXXXXXX</p>
+                  <input 
+                    type="text"
+                    placeholder="Enter Transaction ID"
+                    value={trxID}
+                    onChange={(e) => setTrxID(e.target.value)}
+                    className="w-full bg-white border border-pink-200 focus:border-[#E2136E] outline-none rounded-xl px-4 py-3 font-bold text-gray-800 text-xs placeholder:text-gray-300"
+                  />
+                </motion.div>
+              )}
             </div>
 
             {/* Bill Summary */}
@@ -236,7 +283,7 @@ const CartPage = () => {
                 </div>
                 
                 <div className="border-t border-gray-800 my-6 pt-6 flex justify-between items-center">
-                  <span className="font-black text-gray-500 uppercase text-[10px] tracking-[0.2em]">Payable Amount</span>
+                  <span className="font-black text-gray-500 uppercase text-[10px] tracking-[0.2em]">Payable</span>
                   <span className="text-4xl font-black text-orange-500 italic">৳{total}</span>
                 </div>
               </div>
@@ -250,13 +297,13 @@ const CartPage = () => {
                 {isProcessing ? (
                   <>
                     <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
-                    Sending...
+                    Processing...
                   </>
                 ) : "Place Order"}
               </button>
               
               <p className="text-[9px] text-center text-gray-500 mt-6 font-black uppercase tracking-[0.3em]">
-                Verified Cash Transaction
+                {paymentMethod === 'bkash' ? "Secure Mobile Payment" : "Verified Cash Transaction"}
               </p>
             </div>
           </div>
