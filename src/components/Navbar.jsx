@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { FaShoppingBag, FaBars, FaTimes, FaInstagram, FaFacebook, FaWhatsapp, FaArrowRight } from "react-icons/fa";
 import { useCart } from "../context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
@@ -7,18 +7,31 @@ import { motion, AnimatePresence } from "framer-motion";
 const Navbar = () => {
   const { cartCount } = useCart();
   const [isOpen, setIsOpen] = useState(false);
+  const [isHolding, setIsHolding] = useState(false);
+  const navigate = useNavigate();
+  const timerRef = useRef(null);
 
+  // 1. "Admin" is removed from here to hide it from the UI
   const navLinks = [
     { name: "Home", path: "/" },
     { name: "Menu", path: "/menu" },
     { name: "Contact", path: "/contact" },
-    { name: "Admin", path: "/admin" },
-
-
-
   ];
 
-  // Prevent background scroll when mobile menu is open
+  // 2. Long Press Logic
+  const handlePressStart = () => {
+    setIsHolding(true);
+    timerRef.current = setTimeout(() => {
+      setIsHolding(false);
+      navigate("/admin"); // Redirects after 2.5 seconds
+    }, 2500);
+  };
+
+  const handlePressEnd = () => {
+    setIsHolding(false);
+    if (timerRef.current) clearTimeout(timerRef.current);
+  };
+
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "unset";
   }, [isOpen]);
@@ -26,7 +39,7 @@ const Navbar = () => {
   return (
     <nav className="bg-white/80 backdrop-blur-md shadow-sm px-6 py-4 sticky top-0 z-50 border-b border-gray-100">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
-
+        
         {/* Mobile Menu Trigger */}
         <button
           onClick={() => setIsOpen(true)}
@@ -35,10 +48,20 @@ const Navbar = () => {
           <FaBars />
         </button>
 
-        {/* Logo */}
-        <Link to="/" className="text-2xl font-black text-orange-600 italic tracking-tighter">
-          ZahMon<span className="text-gray-900 not-italic">Cafe</span>
-        </Link>
+        {/* Logo with Long Press Trigger */}
+        <motion.div
+          onMouseDown={handlePressStart}
+          onMouseUp={handlePressEnd}
+          onMouseLeave={handlePressEnd}
+          onTouchStart={handlePressStart}
+          onTouchEnd={handlePressEnd}
+          animate={isHolding ? { scale: 0.92, filter: "brightness(1.2)" } : { scale: 1, filter: "brightness(1)" }}
+          className="cursor-pointer select-none"
+        >
+          <Link to="/" className="text-2xl font-black text-orange-600 italic tracking-tighter pointer-events-none">
+            ZahMon<span className="text-gray-900 not-italic">Cafe</span>
+          </Link>
+        </motion.div>
 
         {/* Desktop Links */}
         <div className="flex items-center space-x-8">
@@ -77,7 +100,6 @@ const Navbar = () => {
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Background Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -86,15 +108,13 @@ const Navbar = () => {
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60] md:hidden"
             />
 
-            {/* The Animated Drawer */}
             <motion.div
               initial={{ x: "-100%", borderTopRightRadius: "100px", borderBottomRightRadius: "100px" }}
               animate={{ x: 0, borderTopRightRadius: "0px", borderBottomRightRadius: "0px" }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed top-0 left-0 h-screen w-[50%] bg-white z-[70] shadow-2xl p-8 md:hidden flex flex-col"
+              className="fixed top-0 left-0 h-screen w-[70%] md:w-[50%] bg-white z-[70] shadow-2xl p-8 md:hidden flex flex-col"
             >
-              {/* Drawer Header */}
               <div className="flex justify-between items-center mb-12">
                 <span className="text-2xl font-black text-orange-600 italic">ZahMon</span>
                 <button
@@ -105,8 +125,7 @@ const Navbar = () => {
                 </button>
               </div>
 
-              {/* Navigation Links as Styled Buttons */}
-              <div className="flex flex-col ">
+              <div className="flex flex-col">
                 {navLinks.map((link, i) => (
                   <motion.div
                     key={link.name}
@@ -122,19 +141,15 @@ const Navbar = () => {
                       <span className="text-xl font-black text-orange-700 group-hover:text-orange-600 transition-colors z-10">
                         {link.name}
                       </span>
-
                       <div className="flex items-center z-10">
                         <FaArrowRight className="text-orange-500 text-xl opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300" />
                       </div>
-
-                      {/* Animated Background Pill */}
                       <div className="absolute inset-0 bg-orange-50 -z-0 rounded-2xl scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
                     </Link>
                   </motion.div>
                 ))}
               </div>
 
-              {/* Footer Section */}
               <div className="mt-auto pt-10">
                 <div className="flex space-x-6 mb-8 text-2xl text-orange-600">
                   <FaInstagram className="hover:text-gray-900 cursor-pointer transition-colors" />

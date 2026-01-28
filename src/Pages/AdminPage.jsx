@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { 
   FaPlus, FaTrash, FaSignOutAlt, FaClipboardList, FaLink, 
-  FaEdit, FaTimes, FaCheckCircle, FaTable, FaSpinner 
+  FaEdit, FaTimes, FaCheckCircle, FaSpinner, FaSearch, FaPhoneAlt, FaClock, FaMapMarkerAlt
 } from "react-icons/fa";
 import { useMenu } from "../context/MenuContext";
 import { db } from "../firebase"; 
@@ -18,12 +18,10 @@ const AdminPage = () => {
   const [editId, setEditId] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [newItem, setNewItem] = useState({ 
-    name: "", 
-    price: "", 
-    category: Object.keys(menu)[0] || "Beverages",
-    image: "" // This will store the direct URL string
+    name: "", price: "", category: Object.keys(menu)[0] || "Beverages", image: "" 
   });
 
   const handleLogout = () => {
@@ -31,8 +29,20 @@ const AdminPage = () => {
     navigate("/login");
   };
 
+  // --- DELETE INDIVIDUAL ORDER ---
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm("Delete this specific order?")) return;
+    try {
+      await deleteDoc(doc(db, "orders", orderId));
+      // Note: The useMenu hook usually listens to snapshot, 
+      // so it will disappear automatically from the UI.
+    } catch (error) {
+      alert("Failed to delete order.");
+    }
+  };
+
   const handleClearAllOrders = async () => {
-    if (!window.confirm("ARE YOU SURE? This will delete all live orders from the database permanently.")) return;
+    if (!window.confirm("ARE YOU SURE? This will delete all live orders permanently.")) return;
     setIsClearing(true);
     try {
       const querySnapshot = await getDocs(collection(db, "orders"));
@@ -41,8 +51,7 @@ const AdminPage = () => {
       );
       await Promise.all(deletePromises);
     } catch (error) {
-      console.error("Error clearing orders:", error);
-      alert("Failed to clear all orders.");
+      alert("Failed to clear queue.");
     } finally {
       setIsClearing(false);
     }
@@ -50,201 +59,144 @@ const AdminPage = () => {
 
   const handleAddItem = async (e) => {
     e.preventDefault();
-    if (!newItem.name || !newItem.price || !newItem.image) {
-      return alert("Please fill Name, Price, and provide an Image URL");
-    }
-    
+    if (!newItem.name || !newItem.price || !newItem.image) return alert("Fill all fields!");
     setIsSaving(true);
     try {
-      if (isEditing) {
-        // Delete the old one before adding the updated version
-        await deleteItem(newItem.category, editId);
-      }
-
-      const itemData = {
-        name: newItem.name,
-        price: parseFloat(newItem.price),
-        image: newItem.image, 
-        description: "Freshly prepared at ZahMon"
-      };
-
-      await addItem(newItem.category, itemData);
+      if (isEditing) await deleteItem(newItem.category, editId);
+      await addItem(newItem.category, { 
+        ...newItem, 
+        price: parseFloat(newItem.price), 
+        description: "Freshly prepared at ZahMon" 
+      });
       resetForm();
-    } catch (error) {
-      console.error("Error saving item:", error);
-      alert("Failed to save to database.");
-    } finally {
-      setIsSaving(false);
-    }
+    } catch (error) { alert("Error saving."); } finally { setIsSaving(false); }
   };
 
   const resetForm = () => {
-    setNewItem({ 
-        name: "", 
-        price: "", 
-        category: Object.keys(menu)[0] || "Beverages", 
-        image: "" 
-    });
-    setIsEditing(false);
-    setEditId(null);
+    setNewItem({ name: "", price: "", category: Object.keys(menu)[0] || "Beverages", image: "" });
+    setIsEditing(false); setEditId(null);
   };
 
   const startEdit = (category, item) => {
-    setIsEditing(true);
-    setEditId(item.name);
-    setNewItem({
-      name: item.name,
-      price: item.price,
-      category: category,
-      image: item.image
-    });
+    setIsEditing(true); setEditId(item.name);
+    setNewItem({ name: item.name, price: item.price, category, image: item.image });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-24 pb-12 px-6 font-sans">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-[#F8F9FB] pt-24 pb-12 px-4 md:px-8 font-sans">
+      <div className="max-w-7xl mx-auto">
         
         {/* --- HEADER --- */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
           <div>
-            <h1 className="text-4xl font-black text-gray-900 italic">
+            <h1 className="text-4xl font-black text-gray-900 italic tracking-tighter">
               ZahMon<span className="text-orange-600">Admin</span>
             </h1>
-            <p className="text-gray-400 font-bold text-xs uppercase tracking-widest mt-1">Database Management (No-Storage Mode)</p>
+            <p className="text-gray-400 font-bold text-[10px] uppercase tracking-[0.2em] mt-1">Kitchen Control Panel</p>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex bg-gray-200 p-1 rounded-2xl shadow-inner">
+          <div className="flex items-center gap-3">
+            <div className="flex bg-gray-200/50 p-1.5 rounded-2xl backdrop-blur-md border border-gray-200">
               <button 
                 onClick={() => setActiveTab("menu")} 
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all ${activeTab === 'menu' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
+                className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${activeTab === 'menu' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
               >
                 Menu
               </button>
               <button 
                 onClick={() => setActiveTab("orders")} 
-                className={`px-6 py-2 rounded-xl font-bold text-sm transition-all relative ${activeTab === 'orders' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
+                className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest transition-all relative ${activeTab === 'orders' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
               >
                 Orders
                 {orders.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full animate-pulse font-black">
-                        {orders.length}
-                    </span>
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-5 h-5 flex items-center justify-center rounded-full animate-bounce">
+                    {orders.length}
+                  </span>
                 )}
               </button>
             </div>
-            <button onClick={handleLogout} className="p-3 bg-white text-gray-400 hover:text-red-500 rounded-2xl border border-gray-100 shadow-sm transition-colors">
+            <button onClick={handleLogout} className="p-4 bg-white text-gray-400 hover:text-red-500 rounded-2xl shadow-sm transition-all active:scale-90 border border-gray-100">
               <FaSignOutAlt />
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {activeTab === "menu" && (
             <>
-              {/* --- FORM SECTION --- */}
-              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-1">
-                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 sticky top-28">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-black text-gray-800 flex items-center gap-2 uppercase tracking-tighter">
-                      {isEditing ? <><FaEdit className="text-blue-500"/> Edit</> : <><FaPlus className="text-orange-600"/> Add</>} Item
-                    </h3>
-                    {isEditing && (
-                      <button onClick={resetForm} className="text-gray-400 hover:text-red-500 text-[10px] font-black uppercase tracking-widest flex items-center gap-1">
-                        <FaTimes /> Cancel
-                      </button>
-                    )}
-                  </div>
+              {/* --- LEFT: FORM PANEL --- */}
+              <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-4">
+                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 sticky top-24">
+                  <h3 className="text-xl font-black text-gray-800 uppercase tracking-tighter flex items-center gap-3 mb-8">
+                    {isEditing ? <FaEdit className="text-blue-500"/> : <FaPlus className="text-orange-600"/>}
+                    {isEditing ? "Modify Item" : "Add Item"}
+                  </h3>
                   
-                  <form onSubmit={handleAddItem} className="space-y-5">
-                    {/* Image Preview Area */}
-                    <div className="h-44 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 overflow-hidden relative group">
+                  <form onSubmit={handleAddItem} className="space-y-6">
+                    <div className="h-44 bg-gray-50 rounded-[2rem] border-2 border-dashed border-gray-200 overflow-hidden relative">
                       {newItem.image ? (
-                        <img src={newItem.image} className="w-full h-full object-cover" alt="Preview" onError={(e) => e.target.src = 'https://placehold.co/600x400?text=Invalid+Link'} />
+                        <img src={newItem.image} className="w-full h-full object-cover" alt="Preview" />
                       ) : (
-                        <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-300">
-                          <FaLink className="text-2xl mb-2" />
-                          <span className="text-[10px] font-black uppercase">No Link Provided</span>
+                        <div className="flex flex-col items-center justify-center h-full text-gray-300">
+                          <FaLink className="text-3xl mb-2 opacity-20" />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Image Preview</span>
                         </div>
                       )}
                     </div>
 
                     <div className="space-y-4">
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-2 tracking-widest">Image Direct Link</label>
-                        <input 
-                          type="text" 
-                          value={newItem.image} 
-                          onChange={(e) => setNewItem({...newItem, image: e.target.value})} 
-                          className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-gray-900 placeholder-gray-300 outline-none focus:ring-2 focus:ring-orange-100" 
-                          placeholder="Paste .jpg or .png link" 
-                        />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-2 tracking-widest">Category</label>
-                        <select value={newItem.category} onChange={(e) => setNewItem({...newItem, category: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-gray-700 outline-none">
-                          {Object.keys(menu).map(cat => <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>)}
+                      <input type="text" value={newItem.image} onChange={(e) => setNewItem({...newItem, image: e.target.value})} className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-bold text-sm focus:ring-2 focus:ring-orange-100 outline-none transition-all" placeholder="Paste Image URL..." />
+                      <div className="grid grid-cols-2 gap-4">
+                        <select value={newItem.category} onChange={(e) => setNewItem({...newItem, category: e.target.value})} className="bg-gray-50 rounded-2xl px-5 py-4 font-bold text-sm text-gray-700 outline-none cursor-pointer">
+                          {Object.keys(menu).map(cat => <option key={cat} value={cat}>{cat}</option>)}
                         </select>
+                        <input type="number" value={newItem.price} onChange={(e) => setNewItem({...newItem, price: e.target.value})} className="bg-gray-50 rounded-2xl px-5 py-4 font-bold text-sm outline-none" placeholder="Price ৳" />
                       </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-2 tracking-widest">Item Name</label>
-                        <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-gray-900 placeholder-gray-300 outline-none" placeholder="e.g. Garlic Ramen" />
-                      </div>
-
-                      <div>
-                        <label className="text-[10px] font-black uppercase text-gray-400 mb-2 block ml-2 tracking-widest">Price (৳)</label>
-                        <input type="number" value={newItem.price} onChange={(e) => setNewItem({...newItem, price: e.target.value})} className="w-full bg-gray-50 border-none rounded-2xl px-4 py-4 font-bold text-gray-900 outline-none" />
-                      </div>
+                      <input type="text" value={newItem.name} onChange={(e) => setNewItem({...newItem, name: e.target.value})} className="w-full bg-gray-50 rounded-2xl px-5 py-4 font-bold text-sm outline-none" placeholder="Item Name" />
                     </div>
 
-                    <button 
-                      disabled={isSaving}
-                      className={`w-full py-5 rounded-2xl font-black uppercase shadow-xl transition-all flex items-center justify-center gap-2 ${isEditing ? 'bg-blue-600 text-white' : 'bg-gray-900 text-white'} ${isSaving ? 'opacity-70 cursor-not-allowed' : 'active:scale-95 hover:bg-orange-600'}`}
-                    >
-                      {isSaving ? <><FaSpinner className="animate-spin" /> Saving...</> : (isEditing ? "Update Menu" : "Add to Menu")}
+                    <button disabled={isSaving} className={`w-full py-5 rounded-2xl font-black uppercase text-xs tracking-widest shadow-lg transition-all flex items-center justify-center gap-3 ${isEditing ? 'bg-blue-600' : 'bg-gray-900'} text-white active:scale-95`}>
+                      {isSaving ? <FaSpinner className="animate-spin" /> : (isEditing ? "Update Item" : "Publish to Menu")}
                     </button>
+                    {isEditing && <button onClick={resetForm} className="w-full text-[10px] font-black uppercase text-gray-400 tracking-widest">Cancel Editing</button>}
                   </form>
                 </div>
               </motion.div>
 
-              {/* --- TABLE SECTION --- */}
-              <div className="lg:col-span-2">
-                <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-                  <table className="w-full text-left">
-                    <thead className="bg-gray-50/50 border-b border-gray-100 text-gray-400 uppercase text-[10px] font-black">
-                      <tr>
-                        <th className="px-8 py-5">Item</th>
-                        <th className="px-8 py-5">Price</th>
-                        <th className="px-8 py-5 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {Object.entries(menu).map(([category, items]) => (
-                        items.map((item, idx) => (
-                          <tr key={`${category}-${idx}`} className="border-b border-gray-50 hover:bg-orange-50/20 transition-colors">
-                            <td className="px-8 py-4">
-                              <div className="flex items-center gap-4">
-                                <img src={item.image} className="w-12 h-12 rounded-xl object-cover shadow-sm bg-gray-100" alt="" />
-                                <div>
-                                  <p className="font-bold text-gray-800 leading-tight">{item.name}</p>
-                                  <span className="text-[9px] font-black uppercase text-orange-500 bg-orange-50 px-2 py-0.5 rounded-md mt-1 inline-block">{category}</span>
-                                </div>
+              {/* --- RIGHT: MENU GRID --- */}
+              <div className="lg:col-span-8 space-y-6">
+                <div className="relative">
+                  <FaSearch className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300" />
+                  <input type="text" placeholder="Search menu items..." className="w-full bg-white rounded-3xl py-5 pl-14 pr-6 shadow-sm border border-gray-100 outline-none font-bold" onChange={(e) => setSearchQuery(e.target.value.toLowerCase())} />
+                </div>
+
+                <div className="space-y-10">
+                  {Object.entries(menu).map(([category, items]) => {
+                    const filtered = items.filter(i => i.name.toLowerCase().includes(searchQuery));
+                    if (!filtered.length) return null;
+                    return (
+                      <div key={category} className="space-y-5">
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-orange-600 bg-orange-50 w-fit px-4 py-1 rounded-full">{category}</h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {filtered.map((item, idx) => (
+                            <div key={idx} className="bg-white p-3 rounded-[2rem] border border-gray-50 shadow-sm flex items-center gap-4 group">
+                              <img src={item.image} className="w-20 h-20 rounded-2xl object-cover" alt="" />
+                              <div className="flex-1">
+                                <h4 className="font-black text-gray-800 text-sm">{item.name}</h4>
+                                <p className="text-orange-600 font-black text-xs">৳{item.price}</p>
                               </div>
-                            </td>
-                            <td className="px-8 py-4 font-black text-gray-700">৳{item.price}</td>
-                            <td className="px-8 py-4 text-right space-x-1">
-                              <button onClick={() => startEdit(category, item)} className="p-3 text-blue-400 hover:bg-blue-50 rounded-xl transition-all"><FaEdit /></button>
-                              <button onClick={() => deleteItem(category, item.name)} className="p-3 text-red-300 hover:bg-red-50 rounded-xl transition-all"><FaTrash /></button>
-                            </td>
-                          </tr>
-                        ))
-                      ))}
-                    </tbody>
-                  </table>
+                              <div className="flex flex-col gap-1 pr-2">
+                                <button onClick={() => startEdit(category, item)} className="p-2.5 text-blue-500 hover:bg-blue-50 rounded-xl transition-all"><FaEdit size={14}/></button>
+                                <button onClick={() => deleteItem(category, item.name)} className="p-2.5 text-red-400 hover:bg-red-50 rounded-xl transition-all"><FaTrash size={14}/></button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -252,79 +204,84 @@ const AdminPage = () => {
 
           {/* --- TAB 2: LIVE ORDERS --- */}
           {activeTab === "orders" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:col-span-3 space-y-6">
-              <div className="flex flex-col sm:flex-row justify-between items-center bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100 gap-4">
-                <div className="flex items-center gap-4 ml-4">
-                    <div className="bg-orange-100 p-4 rounded-2xl text-orange-600 shadow-inner"><FaClipboardList size={20} /></div>
-                    <div>
-                        <h2 className="text-xl font-black text-gray-800 uppercase tracking-tighter italic">Kitchen Queue</h2>
-                        <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">{orders.length} ACTIVE ORDERS</p>
-                    </div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="lg:col-span-12 space-y-6">
+              <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 gap-4">
+                <div className="flex items-center gap-5">
+                  <div className="bg-gray-900 p-4 rounded-2xl text-white shadow-lg"><FaClipboardList size={24} /></div>
+                  <div>
+                    <h2 className="text-2xl font-black text-gray-800 uppercase tracking-tighter italic">Live Kitchen Queue</h2>
+                    <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest">{orders.length} Pending Orders</p>
+                  </div>
                 </div>
                 {orders.length > 0 && (
-                    <button 
-                      disabled={isClearing}
-                      onClick={handleClearAllOrders} 
-                      className="text-red-500 text-[10px] font-black uppercase hover:bg-red-50 px-6 py-3 rounded-2xl transition-all border border-red-50 flex items-center gap-2"
-                    >
-                      {isClearing ? <FaSpinner className="animate-spin"/> : <FaTrash/>} Clear Queue
-                    </button>
+                  <button disabled={isClearing} onClick={handleClearAllOrders} className="text-gray-400 text-[9px] font-black uppercase bg-gray-50 px-8 py-4 rounded-2xl hover:bg-red-500 hover:text-white transition-all border border-gray-100">
+                    {isClearing ? "Purge..." : "Clear All Orders"}
+                  </button>
                 )}
               </div>
 
               {orders.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {orders.map((order) => (
-                    <motion.div layout key={order.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 relative overflow-hidden group hover:shadow-xl transition-all">
-                      <div className="absolute -top-4 -right-4 p-8 opacity-5 group-hover:opacity-10 transition-all group-hover:rotate-12">
-                        <FaTable size={100} />
-                      </div>
-                      
+                    <motion.div layout key={order.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 relative group overflow-hidden">
                       <div className="flex justify-between items-start mb-6">
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="text-[10px] font-black bg-orange-100 text-orange-600 px-3 py-1 rounded-full uppercase"># {order.id.slice(-5)}</span>
-                            <span className="text-[10px] font-black bg-gray-900 text-white px-3 py-1 rounded-full uppercase flex items-center gap-1">
-                                <FaTable size={8}/> TABLE {order.table || '??'}
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-black bg-orange-600 text-white px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+                              <FaMapMarkerAlt size={8}/> {order.table}
+                            </span>
+                            <span className="text-[9px] font-black bg-gray-100 text-gray-500 px-3 py-1 rounded-full uppercase tracking-widest flex items-center gap-1">
+                              <FaClock size={8}/> {order.placedAt || "Just now"}
                             </span>
                           </div>
-                          <p className="text-gray-400 text-[10px] font-black uppercase tracking-tighter">
-                            {new Date(order.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <a href={`tel:${order.phone}`} className="flex items-center gap-2 text-gray-900 font-black text-xs hover:text-orange-600 transition-colors">
+                            <FaPhoneAlt size={10} className="text-orange-500"/>
+                            {order.phone || "No Phone"}
+                          </a>
                         </div>
-                        <button 
-                          onClick={() => completeOrder(order.id)} 
-                          className="bg-green-500 text-white p-4 rounded-2xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all active:scale-90"
-                        >
-                          <FaCheckCircle size={20} />
-                        </button>
+                        
+                        {/* ORDER ACTIONS (Complete & Delete Individual) */}
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleDeleteOrder(order.id)} 
+                            className="bg-red-50 text-red-400 p-4 rounded-2xl hover:bg-red-500 hover:text-white transition-all active:scale-90"
+                            title="Delete this order"
+                          >
+                            <FaTrash size={18} />
+                          </button>
+                          <button 
+                            onClick={() => completeOrder(order.id)} 
+                            className="bg-green-500 text-white p-4 rounded-2xl hover:bg-green-600 shadow-lg shadow-green-100 transition-all active:scale-90"
+                            title="Mark as completed"
+                          >
+                            <FaCheckCircle size={20} />
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="space-y-3 mb-6">
+                      <div className="space-y-3 mb-8 min-h-[80px]">
                         {order.items.map((item, i) => (
-                          <div key={i} className="flex justify-between items-center border-b border-gray-50 pb-2">
+                          <div key={i} className="flex justify-between items-center text-sm border-b border-gray-50 pb-2">
                             <div className="flex items-center gap-2">
-                                <span className="bg-gray-100 text-gray-800 w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-black">{item.quantity}x</span>
-                                <span className="font-bold text-gray-800 text-sm">{item.name}</span>
+                              <span className="text-orange-600 font-black text-xs">{item.quantity}x</span>
+                              <span className="font-bold text-gray-700">{item.name}</span>
                             </div>
-                            <span className="text-gray-400 text-xs font-bold">৳{item.price * item.quantity}</span>
+                            <span className="text-gray-300 font-bold text-xs">৳{item.price * item.quantity}</span>
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-4 border-t-2 border-dashed border-gray-100 flex justify-between items-center">
-                        <span className="text-gray-400 font-black uppercase text-[10px] tracking-widest">Total Pay</span>
-                        <span className="text-3xl font-black text-orange-600 italic">৳{order.total}</span>
+                      <div className="pt-6 border-t border-dashed border-gray-100 flex justify-between items-center">
+                        <span className="text-3xl font-black text-gray-900 italic">৳{order.total}</span>
+                        <span className="text-[9px] font-black text-green-500 uppercase bg-green-50 px-3 py-1 rounded-md tracking-widest">Cash</span>
                       </div>
                     </motion.div>
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center py-40 bg-white rounded-[3rem] border-2 border-dashed border-gray-100">
-                  <motion.div animate={{ y: [0, -10, 0] }} transition={{ repeat: Infinity, duration: 3 }}>
-                    <FaClipboardList size={60} className="text-gray-100 mb-4" />
-                  </motion.div>
-                  <p className="text-gray-400 font-black uppercase text-xs tracking-widest">No Active Orders</p>
+                <div className="py-32 bg-white rounded-[3rem] border border-dashed border-gray-200 flex flex-col items-center justify-center opacity-50">
+                  <FaClipboardList className="text-gray-200 mb-6" size={60} />
+                  <p className="text-gray-400 font-black uppercase text-xs tracking-[0.3em]">Kitchen Is Clear</p>
                 </div>
               )}
             </motion.div>

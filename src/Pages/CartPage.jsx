@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useMenu } from "../context/MenuContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaPlus, FaMinus, FaShoppingBag, FaCheckCircle, FaArrowLeft, FaUtensils } from "react-icons/fa";
+import { FaPlus, FaMinus, FaShoppingBag, FaCheckCircle, FaArrowLeft, FaUtensils, FaPhoneAlt, FaClock } from "react-icons/fa";
 import { Link, useNavigate } from "react-router-dom";
 
 const CartPage = () => {
@@ -11,7 +11,8 @@ const CartPage = () => {
   const navigate = useNavigate();
   
   const [isOrdered, setIsOrdered] = useState(false);
-  const [tableNumber, setTableNumber] = useState(""); // Track table for the kitchen
+  const [location, setLocation] = useState(""); 
+  const [phone, setPhone] = useState(""); 
   const [isProcessing, setIsProcessing] = useState(false);
 
   const subtotal = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
@@ -19,14 +20,28 @@ const CartPage = () => {
   const total = subtotal + deliveryFee;
 
   const handleConfirmOrder = async () => {
-    if (!tableNumber) {
-      alert("Please enter your Table Number so we can find you!");
+    // Validation
+    if (!location || !phone) {
+      alert("Please enter both your Location and Phone Number!");
+      return;
+    }
+
+    if (phone.length < 11) {
+      alert("Please enter a valid phone number (at least 11 digits).");
       return;
     }
 
     setIsProcessing(true);
 
-    // 1. Prepare structured data for Firestore
+    // 1. AUTOMATIC TIME CAPTURE
+    const now = new Date();
+    const formattedTime = now.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
+
+    // 2. PREPARE DATA
     const orderData = {
       items: cart.map(item => ({
         name: item.name,
@@ -34,19 +49,17 @@ const CartPage = () => {
         price: item.price
       })),
       total: total,
-      table: tableNumber,
-      status: "pending", // Default status for Admin view
-      timestamp: Date.now()
+      table: location, 
+      phone: phone,    
+      status: "pending",
+      placedAt: formattedTime, // Human-readable for Admin display
+      timestamp: Date.now()    // For sorting logic
     };
 
     try {
-      // 2. Push to Firebase via Context
       await placeOrder(orderData);
-
-      // 3. UI Feedback
       setIsOrdered(true);
       
-      // 4. Cleanup after success
       setTimeout(() => {
         clearCart();
         navigate("/"); 
@@ -62,21 +75,27 @@ const CartPage = () => {
   // SUCCESS STATE VIEW
   if (isOrdered) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 px-6 text-center">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8F9FB] px-6 text-center">
         <motion.div 
-          initial={{ scale: 0.8, opacity: 0 }}
+          initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           className="bg-white p-10 md:p-16 rounded-[3.5rem] shadow-2xl shadow-orange-100 max-w-lg border border-orange-50"
         >
-          <div className="w-28 h-28 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8 text-6xl">
+          <div className="w-28 h-28 bg-green-100 text-green-500 rounded-full flex items-center justify-center mx-auto mb-8 text-6xl shadow-inner">
             <FaCheckCircle />
           </div>
-          <h2 className="text-4xl font-black text-gray-900 mb-4 italic">Order Received!</h2>
-          <p className="text-gray-500 font-bold mb-10 leading-relaxed uppercase text-xs tracking-widest">
-            We are preparing your feast for <span className="text-orange-600">Table {tableNumber}</span>.<br/> 
-            Redirecting you to the menu...
-          </p>
-          <div className="w-full bg-gray-100 h-3 rounded-full overflow-hidden">
+          <h2 className="text-4xl font-black text-gray-900 mb-4 italic tracking-tighter">Order Sent!</h2>
+          
+          <div className="space-y-2 mb-10">
+            <p className="text-gray-500 font-bold uppercase text-[10px] tracking-widest leading-relaxed">
+              Placed at <span className="text-orange-600">{new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+            </p>
+            <p className="text-gray-400 font-bold uppercase text-[10px] tracking-widest leading-relaxed px-4">
+              We'll call <span className="text-gray-900 font-black">{phone}</span> once we arrive at <span className="text-gray-900 font-black">{location}</span>.
+            </p>
+          </div>
+
+          <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
             <motion.div 
               initial={{ width: 0 }}
               animate={{ width: "100%" }}
@@ -84,6 +103,7 @@ const CartPage = () => {
               className="bg-green-500 h-full"
             />
           </div>
+          <p className="mt-4 text-[9px] font-black text-gray-300 uppercase tracking-widest">Redirecting to menu...</p>
         </motion.div>
       </div>
     );
@@ -93,14 +113,14 @@ const CartPage = () => {
   if (cart.length === 0) {
     return (
       <div className="min-h-[80vh] flex flex-col items-center justify-center space-y-6 px-6">
-        <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center text-6xl text-gray-300">
+        <div className="w-32 h-32 bg-gray-100 rounded-full flex items-center justify-center text-6xl text-gray-200">
           <FaShoppingBag />
         </div>
         <div className="text-center">
-          <h2 className="text-3xl font-black text-gray-800 italic uppercase">Empty Plate</h2>
-          <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mt-2">Your cart is feeling a bit lonely.</p>
+          <h2 className="text-3xl font-black text-gray-800 italic uppercase tracking-tighter">Empty Plate</h2>
+          <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mt-2">Your cart is feeling a bit lonely.</p>
         </div>
-        <Link to="/" className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95">
+        <Link to="/" className="bg-orange-500 text-white px-10 py-4 rounded-2xl font-black shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95 uppercase text-xs tracking-widest">
           Browse Menu
         </Link>
       </div>
@@ -108,12 +128,15 @@ const CartPage = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-6 pt-32 pb-20">
+    <div className="max-w-6xl mx-auto px-6 pt-32 pb-20 font-sans">
       <div className="flex items-center gap-4 mb-10">
-        <Link to="/" className="p-4 bg-white rounded-2xl shadow-sm text-gray-400 hover:text-orange-500 transition-colors border border-gray-50">
+        <Link to="/" className="p-4 bg-white rounded-2xl shadow-sm text-gray-400 hover:text-orange-500 transition-colors border border-gray-100">
             <FaArrowLeft />
         </Link>
-        <h1 className="text-4xl font-black text-gray-900 italic">Review <span className="text-orange-500">Order</span></h1>
+        <div>
+          <h1 className="text-4xl font-black text-gray-900 italic tracking-tighter">Review <span className="text-orange-500">Order</span></h1>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mt-1">Cash on Delivery</p>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -124,15 +147,15 @@ const CartPage = () => {
               <motion.div 
                 layout
                 key={item.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, x: -50 }}
-                className="flex items-center gap-4 md:gap-6 bg-white p-4 pr-6 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:shadow-md transition-shadow"
+                className="flex items-center gap-4 md:gap-6 bg-white p-4 pr-6 rounded-[2.5rem] border border-gray-100 shadow-sm group hover:shadow-md transition-all"
               >
-                <img src={item.image} className="w-20 h-20 md:w-28 md:h-28 object-cover rounded-[1.8rem] shadow-sm" alt={item.name} />
+                <img src={item.image} className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-[1.8rem] shadow-sm" alt={item.name} />
                 
                 <div className="flex-1">
-                  <h3 className="font-black text-gray-800 text-lg md:text-xl leading-tight">{item.name}</h3>
+                  <h3 className="font-black text-gray-800 text-lg md:text-xl leading-tight tracking-tight">{item.name}</h3>
                   <p className="text-orange-500 font-black text-sm mt-1">৳{item.price}</p>
                 </div>
 
@@ -152,7 +175,7 @@ const CartPage = () => {
                   </button>
                 </div>
 
-                <div className="hidden md:block text-right min-w-[100px]">
+                <div className="hidden md:block text-right min-w-[80px]">
                   <p className="font-black text-gray-900 text-lg">৳{item.price * item.quantity}</p>
                 </div>
               </motion.div>
@@ -160,28 +183,47 @@ const CartPage = () => {
           </AnimatePresence>
         </div>
 
-        {/* RIGHT: Table & Bill Summary */}
+        {/* RIGHT: Delivery & Bill Summary */}
         <div className="lg:col-span-1">
           <div className="space-y-6 sticky top-32">
             
-            {/* Table Number Input */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-              <div className="flex items-center gap-3 mb-4 text-orange-600">
-                <FaUtensils size={14}/>
-                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400">Where are you sitting?</h3>
+            {/* Contact Details Inputs */}
+            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 space-y-6">
+              <div>
+                <div className="flex items-center gap-3 mb-3 text-orange-600">
+                  <FaUtensils size={12}/>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Delivery Address</h3>
+                </div>
+                <input 
+                  type="text"
+                  placeholder="e.g. Jaleshwaritola, House 12"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500 focus:bg-white outline-none rounded-2xl px-6 py-4 font-bold text-gray-800 transition-all placeholder:text-gray-300 text-sm shadow-inner"
+                />
               </div>
-              <input 
-                type="text"
-                placeholder="Table Number (e.g. 05)"
-                value={tableNumber}
-                onChange={(e) => setTableNumber(e.target.value)}
-                className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500 focus:bg-white outline-none rounded-2xl px-6 py-4 font-black text-gray-800 transition-all placeholder:text-gray-300"
-              />
+
+              <div>
+                <div className="flex items-center gap-3 mb-3 text-orange-600">
+                  <FaPhoneAlt size={12}/>
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">Phone Number</h3>
+                </div>
+                <input 
+                  type="tel"
+                  placeholder="017XXXXXXXX"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full bg-gray-50 border-2 border-transparent focus:border-orange-500 focus:bg-white outline-none rounded-2xl px-6 py-4 font-bold text-gray-800 transition-all placeholder:text-gray-300 text-sm shadow-inner"
+                />
+              </div>
             </div>
 
             {/* Bill Summary */}
             <div className="bg-gray-900 text-white p-8 rounded-[3rem] shadow-2xl shadow-gray-200">
-              <h3 className="text-xl font-black mb-8 uppercase tracking-tighter italic">Order Total</h3>
+              <div className="flex items-center justify-between mb-8">
+                <h3 className="text-xl font-black uppercase tracking-tighter italic">Total Bill</h3>
+                <FaClock className="text-gray-600" />
+              </div>
               
               <div className="space-y-4">
                 <div className="flex justify-between text-gray-400 font-bold text-sm">
@@ -189,12 +231,12 @@ const CartPage = () => {
                   <span className="text-white">৳{subtotal}</span>
                 </div>
                 <div className="flex justify-between text-gray-400 font-bold text-sm">
-                  <span>Service Fee</span>
+                  <span>Delivery Fee</span>
                   <span className="text-white">৳{deliveryFee}</span>
                 </div>
                 
                 <div className="border-t border-gray-800 my-6 pt-6 flex justify-between items-center">
-                  <span className="font-black text-gray-500 uppercase text-[10px] tracking-widest">Total to Pay</span>
+                  <span className="font-black text-gray-500 uppercase text-[10px] tracking-[0.2em]">Payable Amount</span>
                   <span className="text-4xl font-black text-orange-500 italic">৳{total}</span>
                 </div>
               </div>
@@ -202,14 +244,19 @@ const CartPage = () => {
               <button 
                 onClick={handleConfirmOrder}
                 disabled={isProcessing}
-                className={`w-full py-5 rounded-2xl font-black mt-4 transition-all shadow-xl shadow-orange-900/20 uppercase tracking-widest text-sm flex items-center justify-center gap-2 
+                className={`w-full py-5 rounded-2xl font-black mt-4 transition-all shadow-xl shadow-orange-900/20 uppercase tracking-widest text-xs flex items-center justify-center gap-3 
                   ${isProcessing ? 'bg-gray-700 cursor-not-allowed' : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white'}`}
               >
-                {isProcessing ? "Sending..." : "Place Order"}
+                {isProcessing ? (
+                  <>
+                    <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1 }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />
+                    Sending...
+                  </>
+                ) : "Place Order"}
               </button>
               
-              <p className="text-[9px] text-center text-gray-500 mt-6 font-black uppercase tracking-[0.2em]">
-                Cash on Delivery
+              <p className="text-[9px] text-center text-gray-500 mt-6 font-black uppercase tracking-[0.3em]">
+                Verified Cash Transaction
               </p>
             </div>
           </div>
